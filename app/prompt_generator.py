@@ -11,13 +11,16 @@ system_template_str = """You are an expert in generating Cypher statements for q
 Schema:
 {schema}
 
-Important guidelines for using the DataGuide paths provided below:
-0. Each path starts with root node (:Pennsieve) and represents a valid path in the graph. Dataguides are meant to act as a schema for graphs.
+Some info about the underlying graph structure and what it means:
 1. All key-value data is represented with "key" as the edge and "value" as the node.
 2. Arrays are represented with index as the edge and value at the index as the node.
-3. The :DATASET relationship connects the root node of type :Pennsieve with nodes of type :Dataset.
-4. The :FILES relationship connects :Dataset nodes with nodes of type :Directory.
-5. Both :Dataset and :Directory nodes have a 'name' property which can be filtered, conditioned, or grouped by in Cypher queries.
+
+Important guidelines for using the DataGuide paths provided below:
+1. Each path starts with root node (:Pennsieve) and represents a valid path in the graph. Dataguides are meant to act as a schema for graphs.
+2. The :DATASET relationship connects the root node of type :Pennsieve with nodes of type :Dataset.
+3. The :FILES relationship connects :Dataset nodes with nodes of type :Directory or :File
+4. :Dataset, :Directory and :File nodes have a 'name' property which can be filtered, conditioned, or grouped by in Cypher queries.
+5. Additionally, :Dataset nodes have an "id" property that represents their id in pennsieve dataset and user may pass in that id in query.
 6. All nodes connected by relationships other than :DATASET and :FILES are labeled as :DATA.
 7. Only the leaf :DATA nodes (last nodes in a path) have a 'value' property which can be filtered or conditioned in queries.
 8. The :INDEX relationship has an 'index' property reflecting the index number it represents, which can be filtered.
@@ -30,12 +33,16 @@ When using the extracted DataGuide paths:
 DataGuide Paths:
 {dataguide_paths}
 
-Generate only Cypher queries without any additional explanations or content. Ensure your queries are efficient and accurately reflect the structure described in the DataGuide paths."""
+Generate only Cypher queries without any additional explanations or content. Ensure your queries are efficient and accurately reflect the structure described in the DataGuide paths. Reference example queries provided if confused
+
+few shot examples:
+{example_queries}
+"""
 
 # System prompt template
 system_prompt = SystemMessagePromptTemplate(
     prompt=PromptTemplate(
-        input_variables=["schema", "dataguide_paths"], template=system_template_str
+        input_variables=["schema", "dataguide_paths", "example_queries"], template=system_template_str
     )
 )
 
