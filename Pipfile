@@ -9,6 +9,7 @@ python-dotenv = "*"
 langchain-community = "*"
 langchain-openai = "*"
 neo4j = "*"
+pymilvus = "*"
 
 [dev-packages]
 
