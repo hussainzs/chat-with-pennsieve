@@ -1,37 +1,24 @@
-from typing import List
+from typing import List, Dict, Any
 from generate_descriptions import generate_embedding
 from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connections, utility
 import subprocess
 import os
 import re
+from pymilvus import MilvusClient
 
 
-def setup_milvus_collection(collection_name: str) -> Collection:
-    """
-    Set up the Milvus collection by establishing a connection, defining the schema, and creating the collection if it does not exist.
-
-    Args:
-        collection_name (str): The name of the collection to be created in milvus if not already present.
-    """
-    # runs the docker commands needed to start the Milvus instance. But may not work in all environments and if error
-    # occurs it stops.
-    connect_to_milvus()
-
-    if is_milvus_container_running():
-        if not utility.has_collection(collection_name):
-            schema = define_schema()
-            return create_collection(collection_name, schema)
-        else:
-            print(f"Collection {collection_name} already exists")
-    else:
-        print("Process failed :(")
-
-
-def connect_to_milvus(error_checking=False):
-    if error_checking:
-        connect_to_milvus_with_error_checking()
-    else:
-        connect_to_milvus_without_error_checking()
+def setup_and_create_milvus_collection(collection_name: str, all_paths: List[str], all_descriptions: List[str]):
+    connection_alias = "default"
+    if not is_milvus_container_running():
+        # step 1: Start up the Milvus instance using docker compose
+        subprocess.run(["docker-compose", "up", "-d"], check=True)
+    # step 2: Connect to the Milvus instance
+    connections.connect(alias=connection_alias, host='localhost', port='19530')
+    # step 3: Create the collection
+    create_collection(collection_name, define_schema(), connection_alias)
+    # step 4: Insert data into the collection
+    insert_data(collection_name, all_paths, all_descriptions)
+    print("Milvus collection created and collection created ✔️✔️✔️")
 
 
 def connect_to_milvus_without_error_checking():
@@ -40,8 +27,14 @@ def connect_to_milvus_without_error_checking():
     else:
         subprocess.run(["docker-compose", "up", "-d"], check=True)
         print("Milvus container started successfully.")
-        subprocess.run(["docker", "port", "milvus-standalone", "19530/tcp"], check=True)
+        # subprocess.run(["docker", "port", "milvus-standalone", "19530/tcp"], check=True)
+        milvus_connection = connections.connect(
+            alias="default",
+            host='localhost',
+            port='19530'
+        )
         print("✔️✔️✔️✔️✔️Connected to Milvus instance on port 19530")
+        return milvus_connection
 
 
 # I understand this function is written badly. ideally it should be refactored. It kinda works.
@@ -166,17 +159,18 @@ def define_schema():
     return CollectionSchema(fields=fields, description="VectorDB for Cypher paths and descriptions")
 
 
-def create_collection(collection_name: str, schema: CollectionSchema) -> Collection:
+def create_collection(collection_name: str, schema: CollectionSchema, connection_alias: str) -> Collection:
     """
     Create the Milvus collection if it does not exist.
 
     Args:
         collection_name (str): The name of the collection.
         schema (CollectionSchema): The schema for the collection.
+        connection_alias (str): The alias of the connection to Milvus.
     """
     if not utility.has_collection(collection_name):
-        collection = Collection(name=collection_name, schema=schema)
-        print(f"Collection {collection_name} created.")
+        collection = Collection(name=collection_name, schema=schema, using=connection_alias)
+        print(f"✔️✔️Collection {collection_name} created.")
         return collection
     else:
         print(f"Collection {collection_name} already exists.")
@@ -191,19 +185,51 @@ def insert_data(collection_name: str, all_paths: List[str], all_descriptions: Li
         all_paths (List[str]): List of Cypher paths.
         all_descriptions (List[str]): List of descriptions corresponding to the Cypher paths.
     """
-    collection = Collection(collection_name)
-    for i in range(len(all_paths)):
-        path = all_paths[i]
-        description = all_descriptions[i]
-        # Embedding generation
+    existing_collection = Collection(collection_name)
+    data = []
+    for index in range(len(all_paths)):
+        path = all_paths[index]
+        description = all_descriptions[index]
         vector_embedding = generate_embedding(description)
         if not vector_embedding:
             print(f"Failed to generate embedding for path {path}")
             raise Exception("Failed to generate embedding, because generate_descriptions.generate_embedding() returned []")
-        else:
-            embedding = vector_embedding
-        # Insert data into the collection
-        collection.insert([path, description, embedding])
+        dictionary = {
+            "cypher_path": path,
+            "description": description,
+            "embedding": vector_embedding
+        }
+        data.append(dictionary)
+    # Insert data into the collection
+    try:
+        insert_result = existing_collection.insert(data)
+        print(f"Insert result: {insert_result}")
+    except Exception as e:
+        print(f"Error during insert: {e}")
+        return
+    # Flush the collection to ensure data is written to disk
+    existing_collection.flush()
+    print("Data flushed to disk.")
+
+    # Check the number of entities in the collection
+    num_entities = existing_collection.num_entities
+    print(f"Number of entities in collection after insert: {num_entities}")
+
+
+def remove_collection(collection_name: str):
+    """
+    Remove the Milvus collection.
+
+    Args:
+        collection_name (str): The name of the collection to remove.
+    """
+    connections.connect(alias="default", host='localhost', port='19530')
+    if utility.has_collection(collection_name):
+        utility.drop_collection(collection_name, using="default")
+        print(f"Collection {collection_name} dropped.")
+    else:
+        print(f"Collection {collection_name} does not exist.")
+
 
 def disconnect_milvus():
     """
