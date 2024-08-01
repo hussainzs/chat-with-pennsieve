@@ -1,10 +1,9 @@
-from typing import List, Dict, Any
-from generate_descriptions import generate_embedding
+from typing import List
+from paths_vectorDB.generate_descriptions import generate_embedding
 from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connections, utility
 import subprocess
 import os
 import re
-from pymilvus import MilvusClient
 
 
 def setup_and_create_milvus_collection(collection_name: str, all_paths: List[str], all_descriptions: List[str]):
@@ -128,20 +127,6 @@ def is_milvus_container_running() -> bool:
         print(f"❌❌❌Error checking Milvus container status: {e}")
         return False
 
-# def check_connection():
-#     """
-#     Check the connection status to the Milvus instance.
-#
-#     Returns:
-#         bool: True if connected, False otherwise.
-#     """
-#     if connections.has_connection("default"):
-#         print("***************Milvus is running on port 19530***************")
-#         return True
-#     else:
-#         print("---------------Failed to connect to Milvus---------------")
-#         return False
-
 
 def define_schema():
     """
@@ -229,6 +214,69 @@ def remove_collection(collection_name: str):
         print(f"Collection {collection_name} dropped.")
     else:
         print(f"Collection {collection_name} does not exist.")
+
+
+def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
+    """
+    Conduct a vector similarity search with the embedding field in the collection named 'default'.
+
+    Args:
+        user_query (str): The user query string.
+    """
+    output: List[str] = [] # List of Cypher paths
+
+    # Step 1: Generate embedding for the user query
+    user_query_vector = generate_embedding(user_query)
+    if not user_query_vector:
+        print("Failed to generate embedding for the user query.")
+        raise Exception("Failed to generate embedding for the user query.")
+
+    # Step 2: Get an existing collection and load it
+    connections.connect(alias="default", host='localhost', port='19530')
+    collection = Collection("default")
+
+    # Step 3: Check if the collection has an index
+    if not collection.indexes:
+        print("Index doesn't exist, creating index...")
+        index_params = {
+            "index_type": "IVF_FLAT",
+            "metric_type": "IP",
+            "params": {"nlist": 128}
+        }
+        collection.create_index(field_name="embedding", index_params=index_params)
+        print("Index created on the 'embedding' field in 'default' collection.")
+    else:
+        print("✔️✔️ Index already exists.")
+    collection.load()
+
+    # Step 3: Define search parameters
+    search_params = {
+        "metric_type": "IP",
+    }
+
+    # Step 4: Conduct the search
+    results = collection.search(
+        data=[user_query_vector],
+        anns_field="embedding",
+        param=search_params,
+        limit=top_k,
+        expr=None,
+        output_fields=['cypher_path'],
+    )
+
+    # Step 5: Print distances of the returned hits and store the Cypher paths
+    if results:
+        for i, hit in enumerate(results[0]):
+            path: str = hit.entity.get('cypher_path')
+            output.append(path)
+            print(f"Hit {i+1}:")
+            print(f"  Cypher Path: {path}")
+            print(f"  Distance: {hit.distance}")
+
+    # Step 6: Release the collection to reduce memory consumption
+    collection.release()
+
+    return output
 
 
 def disconnect_milvus():
