@@ -1,7 +1,7 @@
 # Chat With Pennsieve
 
 ## Project Description
-This is the research project component developed under the guidance of [Dr. Zachary Ives](https://www.cis.upenn.edu/~zives/). The initial goal is to develop a graph layer on top of the Pennsieve database and enable machine learning through effective data extraction of medical data from complex and versatile file formats. This component enables natural language interaction with the database. 
+This is the research project component developed under the guidance of [Dr. Zachary Ives](https://www.cis.upenn.edu/~zives/). The initial goal is to develop a graph layer on top of the Pennsieve database and enable machine learning through effective data extraction of medical data from complex and versatile file formats. This component **enables natural language interaction with the database.** 
 
 **Note**: All methods were implemented on the underlying graph built on Neo4j using another repository which will be linked once it is public. This project is ready to be used out of the box, however, without the underlying graph filled in you will not get any results.
 
