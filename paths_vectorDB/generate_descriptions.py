@@ -52,12 +52,12 @@ Provide only the description without any additional context or explanations. Max
 
 def generate_path_descriptions(all_paths: List[str]) -> List[str]:
     """
-    Generate descriptions for a list of Cypher paths using OpenAI API and a pre-defined system prompt.
+    Generate descriptions for a list of Cypher paths using OpenAI API.
     Note: The output descriptions are in the same order as the input Cypher paths.
     For example, the description at index 0 in the output corresponds to the Cypher path at index 0 in the input.
 
     Args:
-        all_paths (List[str]): List of Cypher paths to generate descriptions for.
+        all_paths: List[str]: List of Cypher paths to generate descriptions for.
 
     Returns:
         List[str]: List of descriptions corresponding to the input paths.
@@ -65,15 +65,15 @@ def generate_path_descriptions(all_paths: List[str]) -> List[str]:
     # Load environment variables
     load_dotenv()
 
-    # Test OpenAI API connection
+    # Load OpenAI API connection
     api_key = os.environ['OPENAI_API_KEY']
     if api_key:
-        # this will contain descriptions for all paths
+        # descriptions for all input paths
         results: List[str] = []
 
         # Initialize ChatOpenAI
         chat = ChatOpenAI(
-            model_name="gpt-4o-2024-05-13",
+            model_name="gpt-4o-2024-05-13",  # you can change the model: https://platform.openai.com/docs/models
             temperature=0,
             openai_api_key=api_key
         )
@@ -96,10 +96,11 @@ def generate_path_descriptions(all_paths: List[str]) -> List[str]:
 
 def generate_embedding(path_description: str) -> List[float]:
     """
-    Generate an embedding for a given path description using OpenAI API.
+    Generate a vector embedding for a given path description using OpenAI API.
+    Note: if you change the dimension here, make sure to change the dimension into `embedding` field in vectorDB
 
     Args:
-        path_description (str): Description of a Cypher path.
+        path_description (str): Description of a Cypher path to generate an embedding for.
 
     Returns:
         List[float]: Embedding vector for the path description.
@@ -115,7 +116,6 @@ def generate_embedding(path_description: str) -> List[float]:
         embedding = embeddings.embed_query(path_description)
         return embedding
     else:
-        print("OpenAI API key is not set. Please check your .env file.")
-        return []
+        raise Exception("OpenAI API key was not found. Please check your .env file.")
 
 

@@ -7,60 +7,12 @@ from pymilvus import utility, connections
 from random_path_generator import format_path_into_cypher, generate_formatted_random_paths
 from app.database_setup import setup_neo4j_graph
 from generate_descriptions import generate_path_descriptions
-from vectorDB_setup import create_and_fill_milvus_collection, insert_data, define_schema, create_collection, remove_collection, search_similar_vectors
+from vectorDB_setup import (create_and_fill_milvus_collection, insert_data, define_schema,
+                            create_collection, remove_collection, search_similar_vectors)
 
 
 # remove collection default
 remove_collection("default")
-
-# Test vector similarity search
-# def test_vector_similarity_search():
-#     search_similar_vectors("What are the last names of contributors in dataset named Test Dataset CNT?")
-# test_vector_similarity_search()
-
-# # Test paths_vectorDB setup
-# def dummy_path_description_generation() -> List[List[str]]:
-#     dummyPath1 = "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})-[:FILES]->(:File {name: 'test.edf'})"
-#     dummyPath2 = "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})"
-#     dummyDescription1 = "something 1"
-#     dummyDescription2 = "something 2"
-#     return [[dummyPath1, dummyPath2], [dummyDescription1, dummyDescription2]]
-# def test_vectorDB_insert():
-#     dummyData = dummy_path_description_generation()
-#     # Create a Milvus collection
-#     collection_name = "test"
-#     connection_alias = "default"
-#     connections.connect(alias=connection_alias, host='localhost', port='19530')
-#     if utility.has_collection(collection_name):
-#         print("Test Collection already exists, Dropping it now...")
-#         utility.drop_collection(collection_name, using="default")
-#     else:
-#         print("Test Collection does not already exist, Creating one now...")
-#     schema = define_schema()
-#     collection = create_collection(collection_name, schema, connection_alias)
-#     print(f"List of all collections in current Mivlus server: {utility.list_collections(using='default')}")
-#     print(f"Test collection schema = {collection.schema}")
-#     print(f"Test collection name = {collection.name}")
-#     print(f"Test collection description = {collection.description}")
-#     print(f"Test collection primary field = {collection.primary_field}")
-#     print(f"Is test collection empty? = {collection.is_empty}")
-#     print(f"Indexes in test collection = {collection.indexes}")
-#     insert_data("test", dummyData[0], dummyData[1])
-#     print(f"Is test collection empty after insertion of data? = {collection.is_empty}")
-# # test_vectorDB_insert()
-#
-# def test_setup_and_create_milvus_collection():
-#     name = "test"
-#     connections.connect(alias="default", host='localhost', port='19530')
-#     if utility.has_collection(name):
-#         print("Test Collection already exists, Dropping it now...")
-#         utility.drop_collection(name, using="default")
-#     else:
-#         print("Test Collection does not already exist, Creating one now...")
-#     dummyData = dummy_path_description_generation()
-#     setup_and_create_milvus_collection(name, dummyData[0], dummyData[1])
-# # test_setup_and_create_milvus_collection()
-
 
 
 # # Test description generation for random paths using OpenAI API

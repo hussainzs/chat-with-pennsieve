@@ -7,11 +7,25 @@ from app.database_setup import setup_neo4j_graph
 from app.dataguide import extract_dataguide_paths, format_paths_for_llm
 from prompt_generator import get_cypher_prompt_template
 from paths_vectorDB.main import get_similar_paths_from_milvus
+
 # Load environment variables
 from dotenv import load_dotenv
 
 
 def run_query(user_query: str):
+    """
+    Executes a user query against a Neo4j graph database and returns the response.
+
+    This function sets up the Neo4j graph, extracts DataGuide paths, initializes the ChatOpenAI model,
+    refreshes the graph schema, generates a Cypher prompt template, performs a vector similarity search
+    using Milvus, and finally invokes the `GraphCypherQAChain` with the user query.
+
+    Args:
+        user_query (str): The query string provided by the user.
+
+    Returns:
+        dict: The response from the GraphCypherQAChain, including the query results and intermediate steps.
+    """
     load_dotenv()
 
     # Initialize Neo4jGraph using environment variables

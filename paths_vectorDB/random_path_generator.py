@@ -113,7 +113,7 @@ def format_path_into_cypher(path_elements: List[Union[str, Dict[str, Any]]]) -> 
     Formats a given path into Cypher path syntax.
 
     This function accepts a list of path elements and returns a formatted Cypher path string.
-    For detailed examples of input and output, see the comment above this function.
+    For detailed example of input and output, see the comment above this function.
 
     Args:
         path_elements (List[Union[str, Dict[str, Any]]]): List containing the path elements of a single path.
@@ -160,6 +160,7 @@ def format_path_into_cypher(path_elements: List[Union[str, Dict[str, Any]]]) -> 
     # Join all parts into a single string at the end
     formatted_path: str = "".join(path_parts)
     return formatted_path
+
 
 """
 sample_paths = [
