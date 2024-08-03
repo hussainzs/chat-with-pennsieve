@@ -4,12 +4,12 @@ import time
 
 user_query1 = "Does dataset named: Test Dataset CNT has banner.jpg file?"
 user_query2 = "What are the last names of contributors in dataset named Test Dataset CNT?"
-user_query3 = "What is the degree of the contributors in our database?"
+user_query3 = "What is the degree (i.e. bachelors/masters/phd) of the contributors in our database?"
 user_query4 = "What are the names of the datasets in our database?"
 user_query5 = "What is the patientId of the patient in the header of the test.edf file in dataset named Test Dataset CNT?"
 
 start_time = time.time()
-response = run_query(user_query5)  # change the user_query to test different questions
+response = run_query(user_query3)  # change the user_query to test different questions
 end_time = time.time()
 
 
