@@ -1,4 +1,8 @@
-def extract_dataguide_paths(graph):
+from typing import List, Dict, Any
+from langchain_community.graphs import Neo4jGraph
+
+
+def extract_dataguide_paths(graph: Neo4jGraph) -> List[Dict[str, Any]]:
     query = """
     MATCH path = (root:DataGuide:Root)-[*]->(leaf:DataGuide)
     WHERE NOT (leaf)-->()
@@ -7,7 +11,8 @@ def extract_dataguide_paths(graph):
     results = graph.query(query)
     return results
 
-def format_paths_for_llm(results):
+
+def format_paths_for_llm(results: List[Dict[str, Any]]) -> List[str]:
     formatted_paths = []
     for record in results:
         path = record['path']

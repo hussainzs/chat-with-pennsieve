@@ -7,16 +7,16 @@ from pymilvus import utility, connections
 from random_path_generator import format_path_into_cypher, generate_formatted_random_paths
 from app.database_setup import setup_neo4j_graph
 from generate_descriptions import generate_path_descriptions
-from vectorDB_setup import setup_and_create_milvus_collection, insert_data, define_schema, create_collection, remove_collection, search_similar_vectors
+from vectorDB_setup import create_and_fill_milvus_collection, insert_data, define_schema, create_collection, remove_collection, search_similar_vectors
 
 
-# # remove collection default
-# remove_collection("default")
+# remove collection default
+remove_collection("default")
 
 # Test vector similarity search
-def test_vector_similarity_search():
-    search_similar_vectors("What are the last names of contributors in dataset named Test Dataset CNT?")
-test_vector_similarity_search()
+# def test_vector_similarity_search():
+#     search_similar_vectors("What are the last names of contributors in dataset named Test Dataset CNT?")
+# test_vector_similarity_search()
 
 # # Test paths_vectorDB setup
 # def dummy_path_description_generation() -> List[List[str]]:

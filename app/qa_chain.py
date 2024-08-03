@@ -1,18 +1,16 @@
 import os
 from langchain.chains import GraphCypherQAChain
 from langchain_openai import ChatOpenAI
+import time
 
 from app.database_setup import setup_neo4j_graph
 from app.dataguide import extract_dataguide_paths, format_paths_for_llm
 from prompt_generator import get_cypher_prompt_template
-from query_dataset.queries import get_few_shot_examples
-from paths_vectorDB.vectorDB_setup import search_similar_vectors
-
+from paths_vectorDB.main import get_similar_paths_from_milvus
 # Load environment variables
 from dotenv import load_dotenv
 
 
-# Example usage
 def run_query(user_query: str):
     load_dotenv()
 
@@ -35,17 +33,10 @@ def run_query(user_query: str):
 
     # Get Cypher prompt template
     chat_prompt = get_cypher_prompt_template()
-    few_shot_examples = search_similar_vectors(user_query)
-
-    # Create a partial prompt with only example_queries filled in for printing
-    partial_for_printing_only = chat_prompt.partial(
-        example_queries=few_shot_examples
-    )
-    # Print the partial prompt with example queries filled in
-    print("")
-    print("Printing the prompt with example queries filled in")
-    print(partial_for_printing_only.json(indent=2))
-    print("")
+    start_time = time.time()
+    few_shot_examples = get_similar_paths_from_milvus(graph=graph, user_query=user_query, top_k=3)
+    end_time = time.time()
+    print(f"****Time taken to conduct vector similarity search in vector DB: {end_time - start_time:.2f} seconds")
 
     # Create a partial prompt with schema and dataguide_paths filled in. user_query will be filled in later from user query.
     partial_prompt = chat_prompt.partial(

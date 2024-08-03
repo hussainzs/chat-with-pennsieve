@@ -2,114 +2,32 @@ from typing import List
 from paths_vectorDB.generate_descriptions import generate_embedding
 from pymilvus import Collection, CollectionSchema, FieldSchema, DataType, connections, utility
 import subprocess
-import os
-import re
 
 
-def setup_and_create_milvus_collection(collection_name: str, all_paths: List[str], all_descriptions: List[str]):
+def create_and_fill_milvus_collection(collection_name: str, all_paths: List[str], all_descriptions: List[str]):
     connection_alias = "default"
-    if not is_milvus_container_running():
-        # step 1: Start up the Milvus instance using docker compose
-        subprocess.run(["docker-compose", "up", "-d"], check=True)
-    # step 2: Connect to the Milvus instance
+    # step 1: Connect to the Milvus instance
     connections.connect(alias=connection_alias, host='localhost', port='19530')
-    # step 3: Create the collection
+    # step 3: Create the collection (if it doesn't exist)
     create_collection(collection_name, define_schema(), connection_alias)
     # step 4: Insert data into the collection
     insert_data(collection_name, all_paths, all_descriptions)
-    print("Milvus collection created and collection created ✔️✔️✔️")
+    print("Setup complete✔️✔️✔️ \n")
 
 
-def connect_to_milvus_without_error_checking():
-    if is_milvus_container_running():
-        return
-    else:
-        subprocess.run(["docker-compose", "up", "-d"], check=True)
-        print("Milvus container started successfully.")
-        # subprocess.run(["docker", "port", "milvus-standalone", "19530/tcp"], check=True)
-        milvus_connection = connections.connect(
-            alias="default",
-            host='localhost',
-            port='19530'
-        )
-        print("✔️✔️✔️✔️✔️Connected to Milvus instance on port 19530")
-        return milvus_connection
-
-
-# I understand this function is written badly. ideally it should be refactored. It kinda works.
-def connect_to_milvus_with_error_checking():
-    """
-    Connect to the Milvus instance. If the instance is not running, start it using Docker.
-    use connect_to_milvus_simple() instead for now.
-
-    Args:
-        host (str): Host address of the Milvus instance.
-        port (str): Port number of the Milvus instance.
-    """
-    # Check if docker-compose.yml exists in the project root directory (assume: *one level above the current directory*)
-    project_root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    docker_compose_path = os.path.join(project_root_path, "docker-compose.yml")
-    print(f"Docker compose file path: {docker_compose_path}")
-    if os.path.exists(docker_compose_path):
-        print("✔ docker-compose.yml file found in the project root directory.")
-    else:
-        print("❌ To run Milvus, please place the docker-compose.yml file in the root directory from "
-              "https://github.com/milvus-io/milvus/releases/download/v2.4.6/milvus-standalone-docker-compose.yml")
-        return
-
-    # Step 1: Start the Milvus standalone instance using Docker
+def start_milvus_using_docker_compose():
     try:
-        print("Step 1: ...Starting Milvus standalone instance using Docker...")
-        subprocess.run(["docker-compose", "up", "-d"], check=True)
-        print("✔ Step 1: Milvus standalone instance started successfully.")
+        if not is_milvus_container_running():
+            # step 1: Start up the Milvus instance using docker compose
+            subprocess.run(["docker-compose", "up", "-d"], check=True)
+            print("Milvus container started successfully ✔✔")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Step 1: Failed to start Milvus standalone instance: {e}")
-        return
+        print(f"❌❌❌Error starting Milvus container: {e}")
 
-    # Step 2: Check for the Milvus standalone process and its default port
-    try:
-        # Step 2: Check for the Milvus standalone process and its default port
-        print("Step 2: ...Running docker compose ps to check for Milvus standalone process...")
-        result = subprocess.run(["docker", "compose", "ps"], capture_output=True, text=True, check=True)
-        output_lines = result.stdout.strip().split("\n")
 
-        milvus_line = None
-        for line in output_lines:
-            if "milvus-standalone" in line:
-                milvus_line = line
-                break
-
-        if milvus_line:
-            # Use regex to find the mapping for port 19530
-            port_mapping = re.search(r'(\d+)->19530/tcp', milvus_line)
-            if port_mapping:
-                print(f"✔✔ Step 2: Milvus standalone container found on port 19530")
-                port = 19530
-            else:
-                print(
-                    "❌❌ Step 2: We couldn't find the default port 19530. Please run 'docker compose ps' to find the relevant port "
-                    "and then run 'docker port milvus-standalone {port_number}/tcp' in your terminal to establish a "
-                    "connection with Milvus.")
-                port = None
-                return
-        else:
-            print("❌❌ Step 2: 'milvus-standalone' container not found in the output of 'docker compose ps'")
-            port = None
-            return
-
-    except subprocess.CalledProcessError as e:
-        print(f"❌❌ Step 2: Failed to check for Milvus standalone process: {e}")
-        port = None
-        return
-
-    # Step 3: Connect to the Milvus instance using the obtained port
-    try:
-        print(f"Step 3: ...Connecting to Milvus instance on port {port}")
-        subprocess.run(["docker", "port", "milvus-standalone", "19530/tcp"], check=True)
-        print("✔✔✔ Step 3: Connected to Milvus instance.")
-    except Exception as e:
-        print(f"❌❌❌ Step 3: Failed to connect to Milvus instance: {e}")
-        return
+def collection_exists(collection_name: str) -> bool:
+    connections.connect(alias="default", host='localhost', port='19530')
+    return utility.has_collection(collection_name)
 
 
 def is_milvus_container_running() -> bool:
@@ -128,7 +46,7 @@ def is_milvus_container_running() -> bool:
         return False
 
 
-def define_schema():
+def define_schema() -> CollectionSchema:
     """
     Define the schema for the Milvus collection.
 
@@ -161,9 +79,10 @@ def create_collection(collection_name: str, schema: CollectionSchema, connection
         print(f"Collection {collection_name} already exists.")
 
 
-def insert_data(collection_name: str, all_paths: List[str], all_descriptions: List[str]):
+def insert_data(collection_name: str, all_paths: List[str], all_descriptions: List[str]) -> bool:
     """
-    Insert the Cypher paths, descriptions, and embeddings into the Milvus collection.
+    Insert the Cypher paths, descriptions, and embeddings into an existing Milvus collection.
+    Creates embeddings of the descriptions using the OpenAI API and inserts them as well.
 
     Args:
         collection_name (str): The name of the collection.
@@ -172,6 +91,8 @@ def insert_data(collection_name: str, all_paths: List[str], all_descriptions: Li
     """
     existing_collection = Collection(collection_name)
     data = []
+    print(f"Number of entities in collection before insert: {existing_collection.num_entities}")
+    print("Inserting new data into collection...")
     for index in range(len(all_paths)):
         path = all_paths[index]
         description = all_descriptions[index]
@@ -188,20 +109,22 @@ def insert_data(collection_name: str, all_paths: List[str], all_descriptions: Li
     # Insert data into the collection
     try:
         insert_result = existing_collection.insert(data)
-        print(f"Insert result: {insert_result}")
+        print(f"Insertion Successful ✔️✔️: Insert result: {insert_result}")
     except Exception as e:
-        print(f"Error during insert: {e}")
-        return
-    # Flush the collection to ensure data is written to disk
+        print(f"Insertion Failure ❌❌: Error during insert: {e}")
+        return False
+    # Flush the collection to ensure data is written to disk immediately
     existing_collection.flush()
-    print("Data flushed to disk.")
+    print("Data flushed to disk✔️✔️")
 
     # Check the number of entities in the collection
     num_entities = existing_collection.num_entities
     print(f"Number of entities in collection after insert: {num_entities}")
 
+    return True
 
-def remove_collection(collection_name: str):
+
+def remove_collection(collection_name: str) -> None:
     """
     Remove the Milvus collection.
 
@@ -216,16 +139,18 @@ def remove_collection(collection_name: str):
         print(f"Collection {collection_name} does not exist.")
 
 
-def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
+def search_similar_vectors(collection_name: str, user_query: str, top_k: int = 3) -> List[str]:
     """
     Conduct a vector similarity search with the embedding field in the collection named 'default'.
 
     Args:
+        top_k: the number of similar vectors to return (in descending order of similarity).
         user_query (str): The user query string.
     """
-    output: List[str] = [] # List of Cypher paths
+    output: List[str] = []  # List of Cypher paths
 
     # Step 1: Generate embedding for the user query
+    print("Generating embedding for the user query...")
     user_query_vector = generate_embedding(user_query)
     if not user_query_vector:
         print("Failed to generate embedding for the user query.")
@@ -233,7 +158,8 @@ def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
 
     # Step 2: Get an existing collection and load it
     connections.connect(alias="default", host='localhost', port='19530')
-    collection = Collection("default")
+    collection = Collection(collection_name)
+    print(f"Collection established with Milvus collection named '{collection_name}'.")
 
     # Step 3: Check if the collection has an index
     if not collection.indexes:
@@ -244,9 +170,11 @@ def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
             "params": {"nlist": 128}
         }
         collection.create_index(field_name="embedding", index_params=index_params)
-        print("Index created on the 'embedding' field in 'default' collection.")
+        print(f"Index created on the 'embedding' field in '{collection_name}' collection.")
     else:
-        print("✔️✔️ Index already exists.")
+        print(f"✔️✔️ Index already exists on the embedding field in '{collection_name}' collection.")
+
+    print("\nLoading the collection into memory for search...")
     collection.load()
 
     # Step 3: Define search parameters
@@ -255,6 +183,7 @@ def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
     }
 
     # Step 4: Conduct the search
+    print(f"Searching for similar vectors to user query in the '{collection_name}' collection...")
     results = collection.search(
         data=[user_query_vector],
         anns_field="embedding",
@@ -265,6 +194,7 @@ def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
     )
 
     # Step 5: Print distances of the returned hits and store the Cypher paths
+    print(f"Success ✔️✔️: Similar vectors are following:")
     if results:
         for i, hit in enumerate(results[0]):
             path: str = hit.entity.get('cypher_path')
@@ -275,13 +205,6 @@ def search_similar_vectors(user_query: str, top_k: int = 3) -> List[str]:
 
     # Step 6: Release the collection to reduce memory consumption
     collection.release()
+    print("Collection released from memory.")
 
     return output
-
-
-def disconnect_milvus():
-    """
-    Disconnect from the Milvus instance.
-    """
-    connections.disconnect("default")
-    print("Disconnected from Milvus instance")
