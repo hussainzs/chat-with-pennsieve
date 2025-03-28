@@ -37,9 +37,10 @@ def run_query(user_query: str):
 
     # Initialize ChatOpenAI with API key and model
     llm = ChatOpenAI(
-        api_key=os.environ['OPENAI_API_KEY'],
-        temperature=0.5,
-        model="gpt-4o"
+        model="o1-mini-2024-09-12",
+        temperature=1,
+        timeout=None,
+        max_retries=2,
     )
 
     # Refresh schema to ensure it's up-to-date

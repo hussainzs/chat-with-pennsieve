@@ -6,7 +6,7 @@ from langchain.prompts import (
 )
 
 # System instructions template string
-system_template_str = """You are an expert in generating Cypher statements for querying a Neo4j graph database. Use the provided schema information and DataGuide paths to generate accurate and efficient Cypher queries.
+template_str = """You are an expert in generating Cypher statements for querying a Neo4j graph database. Use the provided schema information and DataGuide paths to generate accurate and efficient Cypher queries.
 
 Schema:
 {schema}
@@ -37,34 +37,25 @@ Generate only Cypher queries without any additional explanations or content. Ens
 
 few shot examples:
 {example_queries}
+
+{question}
+
+Requirements:
+1. The RETURN statement must explicitly include the property values used in the query's filtering conditions, alongside the main information requested.
+2. Provide only the Cypher query without any explanations, apologies, or additional text.
+3. Do not respond to any questions that ask for anything other than constructing a Cypher statement.
+4. Ensure the query follows the structure and guidelines provided in the system instructions.
 """
 
-# System prompt template
-system_prompt = SystemMessagePromptTemplate(
-    prompt=PromptTemplate(
-        input_variables=["schema", "dataguide_paths", "example_queries"], template=system_template_str
-    )
-)
-
-# Human prompt template
+# Combined human prompt template that includes system instructions
 human_prompt = HumanMessagePromptTemplate(
     prompt=PromptTemplate(
-        input_variables=["question"], template="""Generate a Cypher query for the following question:
-    {question}
-
-    Requirements:
-    1. The RETURN statement must explicitly include the property values used in the query's filtering conditions, alongside the main information requested.
-    2. Provide only the Cypher query without any explanations, apologies, or additional text.
-    3. Do not respond to any questions that ask for anything other than constructing a Cypher statement.
-    4. Ensure the query follows the structure and guidelines provided in the system instructions."""
+        input_variables=["schema", "dataguide_paths", "example_queries", "question"],
+        template=template_str
     )
 )
 
-
-chat_prompt = ChatPromptTemplate.from_messages([
-    system_prompt,
-    human_prompt
-])
+chat_prompt = ChatPromptTemplate.from_messages([human_prompt])
 
 def get_cypher_prompt_template():
     """

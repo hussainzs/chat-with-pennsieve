@@ -73,19 +73,21 @@ def generate_path_descriptions(all_paths: List[str]) -> List[str]:
 
         # Initialize ChatOpenAI
         chat = ChatOpenAI(
-            model_name="gpt-4o-2024-05-13",  # you can change the model: https://platform.openai.com/docs/models
-            temperature=0,
-            openai_api_key=api_key
-        )
+            model="o1-mini-2024-09-12",
+            temperature=1,
+            timeout=None,
+            max_retries=2,
+            )
         # Create a SystemMessage object
         system_message = SystemMessage(content=system_message_str)
 
         # iterate through each path in input
         for path in all_paths:
             # Create a HumanMessage object
-            human_message = HumanMessage(content=path)
+            combined_content = f"{system_message.content}\n\nPath:{path}"
+            human_message = HumanMessage(content=combined_content)
             # Invoke the OpenAI API on Human and System messages
-            response = chat.invoke([human_message, system_message])
+            response = chat.invoke([human_message])
             # Append the response to the results list
             results.append(response.content)
         return results
@@ -111,7 +113,7 @@ def generate_embedding(path_description: str) -> List[float]:
     # Test OpenAI API connection
     api_key = os.environ['OPENAI_API_KEY']
     if api_key:
-        embeddings = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=api_key, dimensions=512)
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=api_key, dimensions=512)
         # Generate embedding for the path description
         embedding = embeddings.embed_query(path_description)
         return embedding
