@@ -42,7 +42,8 @@ DataGuide Paths:
 {dataguide_paths}
 
 Generate only Cypher queries without any additional explanations or content. Ensure your queries are efficient and accurately reflect the structure described in the DataGuide paths.
-Use the following example queries only to understand the context and structure of the queries. Do not copy them directly. Example queries are not exhaustive.
+Use the following example queries only to understand the context and structure of the queries. Example queries are not exhaustive. If some path relevant to user query isn't clear in the dataguide then 
+look fir the similar paths in the example queries and use them to construct the query. 
 
 few shot examples:
 {example_queries}

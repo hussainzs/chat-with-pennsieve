@@ -18,11 +18,14 @@ user_query8 = "Give me the orcids of the contributors of our datasets"
 
 user_query9 = "Give me the name of the contributors or creators of the datasets in our database along with their orcids and the names of the datasets they contributed to"
 
+user_query10 = "give me 10 values for raw signals in the edf file of Test Dataset CNT?"
+
 start_time = time.time()
-response = run_query(user_query5i)  # change the user_query to test different questions
+response = run_query(user_query10)  # change the user_query to test different questions
 end_time = time.time()
 
+# print(json.dumps(response, indent=2))  # prints all the intermediate steps and final answer
+# print(f"\nFinal LLM answer: {response['result']}")  # prints only the final english answer that LLM generates after all the processing
+# print(f"*******Time taken to execute CypherQAChain: {end_time - start_time:.3f} seconds")
 
-print(json.dumps(response, indent=2))  # prints all the intermediate steps and final answer
-print(f"\nFinal LLM answer: {response['result']}")  # prints only the final english answer that LLM generates after all the processing
-print(f"*******Time taken to execute CypherQAChain: {end_time - start_time:.3f} seconds")
+print(response)
