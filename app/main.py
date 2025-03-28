@@ -8,8 +8,18 @@ user_query3 = "What is the degree (i.e. bachelors/masters/phd) of the contributo
 user_query4 = "What are the names of the datasets in our database?"
 user_query5 = "What is the patientId of the patient in the header of the test.edf file in dataset named Test Dataset CNT?"
 
+user_query5i = "What license does the dataset about mathematical model for simulating neural regulation have? This info is usually in the manifest.json file"
+
+user_query6 = "What kind of files are in the dataset about mathematical model for simulating neural regulation"
+
+user_query7 = "Who is the creator of the dataset about mathematical model for simulating neural regulation? look in the manifest.json file for this"
+
+user_query8 = "Give me the orcids of the contributors of our datasets"
+
+user_query9 = "Give me the name of the contributors or creators of the datasets in our database along with their orcids and the names of the datasets they contributed to"
+
 start_time = time.time()
-response = run_query(user_query3)  # change the user_query to test different questions
+response = run_query(user_query5i)  # change the user_query to test different questions
 end_time = time.time()
 
 

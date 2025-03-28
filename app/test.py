@@ -1,8 +1,8 @@
-import os
 from dotenv import load_dotenv
 from app.database_setup import setup_neo4j_graph
 from app.dataguide import extract_dataguide_paths, format_paths_for_llm
 import time
+import json
 
 # Load environment variables
 load_dotenv()
@@ -27,4 +27,4 @@ start = time.time()
 paths = format_paths_for_llm(unformatted_paths)
 end = time.time()
 print(f"Time to format paths for LLM: {(end - start):.4f}  seconds")
-print(f"Here are the formatted paths: \n {paths} \n")
+print(f"Here are the formatted paths: \n {json.dumps(paths, indent=2)} \n")

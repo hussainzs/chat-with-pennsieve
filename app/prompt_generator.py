@@ -6,17 +6,25 @@ from langchain.prompts import (
 )
 
 # System instructions template string
-template_str = """You are an expert in generating Cypher statements for querying a Neo4j graph database. Use the provided schema information and DataGuide paths to generate accurate and efficient Cypher queries.
+template_str = """You are an expert in generating Cypher statements for querying a Neo4j graph database. 
+Use the provided schema information and DataGuide paths to generate accurate and efficient Cypher queries.
+
+Remember: user query may not contain the entire name of the dataset, use the schema below to find the exact name of the dataset.
 
 Schema:
 {schema}
 
 Some info about the underlying graph structure and what it means:
-1. All key-value data is represented with "key" as the edge and "value" as the node.
-2. Arrays are represented with index as the edge and value at the index as the node.
+1. All key-value data is represented with "key" as the edge and "value" as the node. Remember "value" maybe an array itself. For arrays look below
+2. Arrays are represented with index as the edge and value at the index as the node. Remember: 
+Array structures are represented with an :INDEX relationship. 
+When a DataGuide path includes an array it contains some extra [:INDEX] and () nodes in the path. Make sure you add them to your path. 
+For example, take a look at this path: 
+"(:Pennsieve)-[:DATASET]->()-[:FILES]->()-[:DATA]->()-[:models]->()-[:INDEX]->()-[:properties]->()-[:INDEX]->()-[:displayName]->()"
+This path represents a nested array structure in the graph. Therefore, the "[:INDEX]" relationships followed by "->()" nodes are included in the path.
 
-Important guidelines for using the DataGuide paths provided below:
-1. Each path starts with root node (:Pennsieve) and represents a valid path in the graph. Dataguides are meant to act as a schema for graphs.
+Important guidelines for using the DataGuide paths while creating your query:
+1. Each path starts with root node (:Pennsieve).
 2. The :DATASET relationship connects the root node of type :Pennsieve with nodes of type :Dataset.
 3. The :FILES relationship connects :Dataset nodes with nodes of type :Directory or :File
 4. :Dataset, :Directory and :File nodes have a 'name' property which can be filtered, conditioned, or grouped by in Cypher queries.
@@ -33,7 +41,8 @@ When using the extracted DataGuide paths:
 DataGuide Paths:
 {dataguide_paths}
 
-Generate only Cypher queries without any additional explanations or content. Ensure your queries are efficient and accurately reflect the structure described in the DataGuide paths. Reference example queries provided if confused
+Generate only Cypher queries without any additional explanations or content. Ensure your queries are efficient and accurately reflect the structure described in the DataGuide paths.
+Use the following example queries only to understand the context and structure of the queries. Do not copy them directly. Example queries are not exhaustive.
 
 few shot examples:
 {example_queries}
