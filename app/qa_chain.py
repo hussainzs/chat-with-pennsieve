@@ -5,7 +5,7 @@ import time
 
 from app.database_setup import setup_neo4j_graph
 from app.dataguide import extract_dataguide_paths, format_paths_for_llm
-from prompt_generator import get_cypher_prompt_template
+from app.prompt_generator import get_cypher_prompt_template
 from paths_vectorDB.main import get_similar_paths_from_milvus
 
 # Load environment variables
@@ -68,7 +68,8 @@ def run_query(user_query: str):
         verbose=True,
         validate_query=True,
         include_run_info=True,
-        return_intermediate_steps=True
+        return_intermediate_steps=True,
+        allow_dangerous_requests=True # only use this in development NOT IN PRODUCTION
     )
 
     # Finally, Invoke the chain with the user query
