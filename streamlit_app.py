@@ -120,15 +120,39 @@ if submit:
             """, unsafe_allow_html=True)
             time.sleep(random.uniform(3, 6))
 
-            # Step 5: Keep showing "summarizing everything hold on" until process_query finishes.
+            # Step 5: Keep showing a status message until process_query finishes.
             while query_thread.is_alive():
                 elapsed = time.time() - start_time
-                status.markdown(f"""
-                <div style="padding:10px; background-color: #e8f4f8; border-radius: 5px; margin-bottom:10px;">
-                    <strong style="font-size:16px;">Step 5:</strong> Summarizing everything, please hold on<br>
-                    <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
-                </div>
-                """, unsafe_allow_html=True)
+                if elapsed >= 35:
+                    status.markdown(
+                        f"""
+                        <div style="padding:10px; background-color: #e8f4f8; border-radius: 5px; margin-bottom:10px;">
+                            <strong style="font-size:16px;">Step 5:</strong> Previously generated query failed, retrying error correction<br>
+                            <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                if elapsed >= 55:
+                    status.markdown(
+                        f"""
+                        <div style="padding:10px; background-color: #e8f4f8; border-radius: 5px; margin-bottom:10px;">
+                            <strong style="font-size:16px;">Step 5:</strong> Generated query failed to get results, retrying one last time<br>
+                            <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    status.markdown(
+                        f"""
+                        <div style="padding:10px; background-color: #e8f4f8; border-radius: 5px; margin-bottom:10px;">
+                            <strong style="font-size:16px;">Step 5:</strong> Summarizing everything, please hold on<br>
+                            <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
                 time.sleep(1)
             status.empty()  # Clear the status once done
 

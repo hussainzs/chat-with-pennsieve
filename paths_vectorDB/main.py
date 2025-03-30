@@ -77,8 +77,8 @@ def fill_collection_with_random_paths(graph: Neo4jGraph, collection_name: str, n
           f" = : {{{total_time_taken:.2f}}} seconds")
 
 
-def get_similar_paths_from_milvus(graph: Neo4jGraph, user_query: str, collection_name: str = "default", top_k: int = 3,
-                                  number_of_paths: int = 10, rebuild_collection: bool = False) -> List[str]:
+def get_similar_paths_from_milvus(graph: Neo4jGraph, user_query: str, collection_name: str = "default", top_k: int = 5,
+                                  number_of_paths: int = 50, rebuild_collection: bool = False) -> List[str]:
     """
     Wrapper function to get similar paths from a Milvus collection. This function is called from `app/qa_chain.py`.
     It starts Milvus if it is not running and rebuilds the collection if it does not exist. Otherwise, it conducts a similarity search in the existing collection.

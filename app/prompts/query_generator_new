@@ -80,7 +80,7 @@ Neo4j Schema:
 DataGuide Paths (Examples Only, Not Exhaustive):
 {dataguide_paths}
 
-Example Queries:
+Example Queries (use this to know the exact values, names, properties of different nodes and relationships since this is directly from the graph):
 {example_queries}
 
 ## USER QUERY TO ANSWER
