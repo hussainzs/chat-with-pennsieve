@@ -1,6 +1,4 @@
 from app.qa_chain import run_query
-import time
-import json
 
 example_query1 = "Does dataset named: Test Dataset CNT has banner.jpg file?"
 example_query2 = "What are the last names of contributors in dataset named Test Dataset CNT?"
@@ -31,18 +29,4 @@ def process_query(user_query: str) -> dict:
 
 
 if __name__ == '__main__':
-    # If running from terminal, allow passing query via command-line argument
-    import sys
-
-    if len(sys.argv) > 1:
-        user_query = sys.argv[1]
-        start_time = time.time()
-        chain_response = run_query(user_query)  # change the user_query to test different questions
-        end_time = time.time()
-
-        print(json.dumps(chain_response, indent=2))  # prints all the intermediate steps and final answer
-        print(
-            f"\nFinal LLM answer: {chain_response['result']}")  # prints only the final english answer that LLM generates after all the processing
-        print(f"*******Time taken to execute CypherQAChain: {end_time - start_time:.3f} seconds")
-    else:
-        print("Please provide a query as a command-line argument.")
+    print("Please run streamlit_app.py to interact with the app.")
