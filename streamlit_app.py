@@ -164,7 +164,7 @@ if submit:
         st.subheader("Results")
 
         # 1. Final LLM Answer
-        final_answer = response.get("result", "No result returned")
+        final_answer = response.get("result", "No result returned") if response is not None else "No result returned"
         st.markdown(f'<div class="result-box"><strong>Final LLM answer:</strong><br>{final_answer}</div>',
                     unsafe_allow_html=True)
 

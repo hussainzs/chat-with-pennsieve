@@ -97,6 +97,7 @@ def run_query(user_query: str, max_retries: int = 3):
             intermediate_steps = response.get("intermediate_steps", [])
             context_data = []
             generated_cypher = None
+            answer_by_llm = None
             # retrieve the context and generated cypher query from the intermediate steps.
             for step in intermediate_steps:
                 if "context" in step:
@@ -108,9 +109,19 @@ def run_query(user_query: str, max_retries: int = 3):
                     # Remove leading "cypher\n" if present.
                     if generated_cypher.startswith("cypher\n"):
                         generated_cypher = generated_cypher.replace("cypher\n", "")
+            if response:
+                answer_by_llm = response.get("result")
+
+            # Boolean check to see if we have a valid answer: no context = invalid or don't know response = invalid.
+            is_invalid_response = (
+                    not context_data or
+                    (answer_by_llm and any(phrase in answer_by_llm.lower() for phrase in
+                                           ["don't know", "dont know", "do not know", "no result", "not sure",
+                                            "cannot find", "can't find", "unable to"]))
+            )
 
             # Retry if context is empty.
-            if not context_data:
+            if is_invalid_response:
                 # add the generated cypher query and error message to the queries_and_errors list.
                 error_msg = f"Empty context returned. Generated cypher: {generated_cypher if generated_cypher else 'No query generated'}"
                 queries_and_errors.append((enhanced_query, error_msg))
@@ -140,3 +151,6 @@ def run_query(user_query: str, max_retries: int = 3):
                 raise Exception(f"Failed after {max_retries} attempts. Last error: {error_msg}")
 
             time.sleep(1)
+
+    # return default response if all retries fail.
+    return "Sorry, I couldn't find an answer to your question. Please try rephrasing your query"

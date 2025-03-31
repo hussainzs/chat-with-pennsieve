@@ -1,5 +1,7 @@
 # Chat With [Pennsieve](https://app.pennsieve.io/)
 
+# TODO: will be updated soon
+
 ## Project Description
 This is the research project component developed under the guidance of [Dr. Zachary Ives](https://www.cis.upenn.edu/~zives/). The initial goal is to develop a graph layer on top of the [Pennsieve database](https://app.pennsieve.io/) and enable machine learning through effective data extraction of medical data from complex and versatile file formats. This component **enables natural language interaction with the database.** 
 
