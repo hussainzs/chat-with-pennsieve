@@ -60,7 +60,7 @@ def run_query(user_query: str, max_retries: int = 3):
         example_queries=few_shot_examples,
         dataguide_paths=formatted_paths
     )
-
+    # retry logic
     retry_count = 0
     queries_and_errors = []
     enhanced_query = user_query
@@ -76,13 +76,13 @@ def run_query(user_query: str, max_retries: int = 3):
                 validate_query=True,
                 include_run_info=True,
                 return_intermediate_steps=True,
-                allow_dangerous_requests=True  # only use this in development NOT IN PRODUCTION
+                allow_dangerous_requests=True,  # only use this in development NOT IN PRODUCTION
             )
 
             # If errors occurred on previous attempts, append error history to form an enhanced query.
             if queries_and_errors:
                 error_history = "\n".join(
-                    [f"Attempted Query: {q}\nError: {e}" for q, e in queries_and_errors]
+                    [f"Tried: {q}\nError: {e}" for q, e in queries_and_errors]
                 )
                 enhanced_query = (
                     f"{user_query}\n\nPreviously I tried these queries with these errors:\n"
@@ -133,7 +133,7 @@ def run_query(user_query: str, max_retries: int = 3):
             error_msg = str(e)
             queries_and_errors.append((enhanced_query, error_msg))
             print(
-                f"Query failed (attempt {retry_count}/{max_retries}):\nQuery: {enhanced_query}\nError: {error_msg}"
+                f"Query failed (attempt {retry_count}/{max_retries})"
             )
 
             if retry_count > max_retries:

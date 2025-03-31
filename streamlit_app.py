@@ -180,7 +180,10 @@ if submit:
             else:
                 generated_cypher = "Cypher query couldn't be parsed properly"
         st.markdown("#### Generated Cypher", unsafe_allow_html=True)
-        st.markdown(f'<div class="result-box">{generated_cypher}</div>', unsafe_allow_html=True)
+        if generated_cypher:
+            st.code(generated_cypher, language='cypher', line_numbers=True, wrap_lines=True)
+        else:
+            st.markdown('<div class="result-box">No generated Cypher found.</div>', unsafe_allow_html=True)
 
         # 3. Full Context: Extract and display as an interactive table
         context_data = []
