@@ -9,14 +9,15 @@ def write_paths_and_descriptions_to_file(all_paths: List[str], all_descriptions:
         all_paths (List[str]): List of Cypher paths.
         all_descriptions (List[str]): List of descriptions corresponding to the Cypher paths.
     """
-    file_path = 'data.txt'
     try:
-        with open(file_path, 'w') as file:
-            for path, description in zip(all_paths, all_descriptions):
-                file.write(f"Path: {path}\nDescription: {description}\n\n")
-        print(f"Data successfully written to {file_path} 📄📄")
+        with open("data.txt", "a", encoding="utf-8", errors="replace") as f:
+            for idx, (path, description) in enumerate(zip(all_paths, all_descriptions), start=1):
+                try:
+                    f.write(f"Path: {path}\nDescription: {description}\n\n")
+                except Exception as err:
+                    print(f"Skipping path {idx} due to write error: {err}")
     except Exception as e:
-        print(f"Error writing to file {file_path}: {e}")
+        print(f"Error opening file data.txt: {e}")
 
 
 def read_paths_and_descriptions_from_file() -> List[List[str]]:

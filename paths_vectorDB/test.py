@@ -7,7 +7,7 @@ from pymilvus import utility, connections
 from random_path_generator import format_path_into_cypher, generate_formatted_random_paths
 from app.database_setup import setup_neo4j_graph
 from generate_descriptions import generate_path_descriptions
-from vectorDB_setup import (create_and_fill_milvus_collection, insert_data, define_schema,
+from vectorDB_setup import (create_and_fill_milvus_collection, insert_bulk_data, define_schema,
                             create_collection, remove_collection, search_similar_vectors)
 
 

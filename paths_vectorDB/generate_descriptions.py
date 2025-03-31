@@ -7,46 +7,62 @@ from langchain_openai import OpenAIEmbeddings
 
 # System instructions template string
 system_message_str = """
-You are a Neo4j expert specializing in medical datasets and files. Given a Cypher path, your task is to provide a concise description of the specific information this path can retrieve. Your description should be tailored to match similar user queries using vector similarity.
+You are a Neo4j expert specializing in medical datasets and files.
 
-Guidelines for your descriptions:
-1. Focus on the key elements of the path: dataset names, file names, and specific properties of nodes.
-2. Mention Relationship names and Node labels to provide context. Also mention value property of :DATA nodes (especially mention the value property of the last node of the path)
-3. :DATA nodes, often have children property and type property. Children property describes number of elements in the data structure and type property explains the type of data structure i.e.type: Object (Dictionary) or Array
-4. Highlight the significance of :INDEX relationships especially the numeric edges in accessing specific data points. 
-5. Pay attention to file extensions and use domain-specific terminology related to the common structure of such files i.e. EDF files have headers with meta data and signal data.
-6. Keep your description to a maximum of 3 sentences, prioritizing clarity and specificity.
-7. Avoid filler words instead Incorporate key words from the path to enhance matching with user queries.
+**Your Task:**  
+Given a Cypher path in the graph that starts from the root node and traverses to a specific node, your task is to provide a concise and specific description of the data point or information retrievable from that path.
 
-Structure of Graph and paths:
-- The root node is always (:Pennsieve).
-- :DATASET relationship connects to :Dataset nodes, :FILES relationship connects to :File or :Directory nodes.
-- Nodes after :FILES are labeled :DATA, representing file contents.
-- Key-value data within files is mapped onto graph as Key -> relationship name and Value -> node value
-- Array data has index as relationship name and value at index as node value
+These descriptions must be clear and domain-specific. Include relevant keywords from Cypher properties, node labels, and relationships (e.g., EDF, header, value, type, index). Avoid filler words. The goal is to educate another LLM with no prior knowledge of the graph structure.
+
+**Graph Structure:**  
+1. `:Pennsieve` (root) connects to `:Dataset` via the `:DATASET` relationship.  
+2. `:Dataset` connects to `:Directory` or `:File` via the `:FILES` relationship.  
+3. `:Dataset`, `:Directory`, and `:File` nodes have a `name` property used for filtering.  
+4. `:File` nodes connect to `:Data` via the `:DATA` relationship.  
+5. `:Dataset` nodes have an `id` property representing the Pennsieve dataset ID.  
+6. All nodes beyond `:Dataset` and `:FILES` relationships are labeled `:Data`.  
+7. Only leaf `:Data` nodes contain a `value` property, used for filtering/conditioning.  
+8. `:INDEX` relationships include an `index` property used for positional access.  
+9. `:Data` node properties:  
+   - `children`: Count of child relationships (array elements or object keys).  
+   - `type`: Indicates data structure type (`Array` or `Object`).  
+   - `value`: Present only in leaf nodes.  
+
+**Graph Semantics:**  
+- All key-value pairs are modeled as an edge (key) pointing to a node (value).  
+- Arrays use `:INDEX` edges with a numeric `index` to link to values.  
+
+**Description Guidelines:**  
+0. First sentence of your description should explain what information is being retrieved from the path. Second sentence should be a special note about the array and objects and their indices/children as shown in examples below. and Third sentence should be a pedantic walk through each node and relationship. 
+1. Include key names (`name` property), relationship types (`:DATASET`, `:FILES`, `:INDEX`), node labels (`:Pennsieve`, `:Dataset`, `:File`, `:Data`), and significant properties (`children`, `type`, `value`, `index`) to allow accurate query matching.
+5. Keep your descriptions to 4-5 sentences maximum. Do not respond with anything else other than the description (no apologies or additional text at all).
+6. Avoid filler language, use keywords from the path instead. Don't repeat information unnecessarily.
 
 Examples paths and their explanations:
 {
 0. path: (:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})-[:FILES]->(:File {name: 'test.edf'})-[:DATA]->(:Data {children: 3.0, type: 'Object'})-[:_rawSignals]->(:Data {children: 12.0, type: 'Array'})-[:INDEX]->(:Data {children: 600.0, type: 'Array'})-[:INDEX]->(:Data {children: 200.0, type: 'Object'})-[:`5`]->(:Data {value: -3112.0})
-Description 2: Retrieve the raw_signal data from the 'test.edf' file in 'Test Dataset CNT'. This path accesses nested array data to access a specific value (-3112.0) at index 5.
+Description: Retrieves a raw signal measurement (value: -3112.0) from the EDF file test.edf in dataset Test Dataset CNT. 
+Special note: the key :_rawSignals returns an Array with 12 children (indices 0–11); within this array, an :INDEX relationship navigates to an inner Array of 600 children and then to an Object with 200 key–value pairs, where numeric index 5 selects the measurement. 
+Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'Test Dataset CNT'), then :FILES accesses the :File node (name: 'test.edf'); a :DATA relationship retrieves an Object node (children: 3.0, type: 'Object'), from which the :_rawSignals key retrieves an Array node (children: 12.0, type: 'Array'); subsequent :INDEX relationships navigate an Array node (children: 600.0, type: 'Array') and then an Object node (children: 200.0, type: 'Object') before the numeric index 5 retrieves the leaf node (value: -3112.0)
+
 
 1. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'A mathematical model for simulating the neural regulation'})-[:FILES]->(:File {name: 'manifest.json'})-[:DATA]->(:Data {children: 19.0, type: 'Object'})-[:creator]->(:Data {children: 3.0, type: 'Object'})-[:first_name]->(:Data {value: 'Omkar'})"
-answer: "Retrieve the first name of the creator of dataset named 'A mathematical model for simulating the neural regulation'. This path accesses nested object data within the manifest.jspn file."
+Description: Retrieves the creator’s first name ('Omkar') from the manifest.json file in dataset A mathematical model for simulating the neural regulation. Special note: the manifest.json file’s :Data node is an Object with 19 children; its :creator key returns an Object with 3 children, from which the :first_name key directly retrieves the leaf value 'Omkar'. Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'A mathematical model for simulating the neural regulation'), then :FILES accesses the :File node (name: 'manifest.json'); a :DATA relationship retrieves an Object node (children: 19.0, type: 'Object'), from which the :creator key accesses an Object node (children: 3.0, type: 'Object') and the :first_name key retrieves the leaf node (value: 'Omkar').
 
 2. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})-[:FILES]->(:File {name: 'test.edf'})-[:DATA]->(:Data {children: 3.0, type: 'Object'})-[:_physicalSignals]->(:Data {children: 12.0, type: 'Array'})-[:INDEX]->(:Data {children: 600.0, type: 'Array'})-[:INDEX]->(:Data {children: 200.0, type: 'Object'})-[:`0`]->(:Data {value: 99.99237})"
-answer: "Access physical signal value of 99.99237 data from the 'test.edf' file in 'Test Dataset CNT'. This path retrieves a precise value (99.99237) from _physicalSignals nested array structure representing 12 channels of 600 sample points each located at index 0"
+Description: Retrieves a physical signal measurement (value: 99.99237) from the EDF file test.edf in dataset Test Dataset CNT. Special note: the key :_physicalSignals returns an Array with 12 children (indices 0–11); subsequent :INDEX relationships traverse an inner Array with 600 children and an Object with 200 key–value pairs, with numeric index 0 selecting the measurement. Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'Test Dataset CNT'), then :FILES accesses the :File node (name: 'test.edf'); a :DATA relationship retrieves an Object node (children: 3.0, type: 'Object'), from which the :_physicalSignals key retrieves an Array node (children: 12.0, type: 'Array'); subsequent :INDEX relationships navigate an Array node (children: 600.0, type: 'Array') and then an Object node (children: 200.0, type: 'Object') before the numeric index 0 retrieves the leaf node (value: 99.99237).
 
 3. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})-[:FILES]->(:File {name: 'test.edf'})-[:DATA]->(:Data {children: 3.0, type: 'Object'})-[:_header]->(:Data {children: 10.0, type: 'Object'})-[:nbSignals]->(:Data {value: 12.0})"
-answer: "Retrieve the number of signals (12) from the header of 'test.edf' in 'Test Dataset CNT'. This path accesses metadata in the header, specifically nbSignals value."
+Description: Retrieves the number of signal channels (value: 12.0) from the header of the EDF file test.edf in dataset Test Dataset CNT. Special note: the key :_header returns an Object with 10 key–value pairs, where the :nbSignals key directly retrieves the number of channels. Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'Test Dataset CNT'), then :FILES accesses the :File node (name: 'test.edf'); a :DATA relationship retrieves an Object node (children: 3.0, type: 'Object'), from which the :_header key retrieves an Object node (children: 10.0, type: 'Object') and the :nbSignals key retrieves the leaf node (value: 12.0).
 
 4. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'Test Dataset CNT'})-[:FILES]->(:File {name: 'test.edf'})-[:DATA]->(:Data {children: 3.0, type: 'Object'})-[:_header]->(:Data {children: 10.0, type: 'Object'})-[:signalInfo]->(:Data {children: 12.0, type: 'Array'})-[:INDEX]->(:Data {children: 10.0, type: 'Object'})-[:digitalMinimum]->(:Data {value: -32768.0})"
-answer: "Access the digital minimum value of -32768.0 from signalInfo from the 'test.edf' file in 'Test Dataset CNT'. This path navigates through the file's header to retrieve signal information. Header is object with 10 children and signalInfo is an array with 12 elements within it."
+Description: Retrieves the digital minimum value (value: -32768.0) from the signal information in the header of the EDF file test.edf in dataset Test Dataset CNT. Special note: within the :_header object (which has 10 key–value pairs), the :signalInfo key returns an Array with 12 children (indices 0–11), where each element is an Object; an :INDEX relationship selects the specific object that contains the :digitalMinimum key. Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'Test Dataset CNT'), then :FILES accesses the :File node (name: 'test.edf'); a :DATA relationship retrieves an Object node (children: 3.0, type: 'Object'), from which the :_header key retrieves an Object node (children: 10.0, type: 'Object'), then the :signalInfo key retrieves an Array node (children: 12.0, type: 'Array'), followed by an :INDEX relationship accessing an Object node (children: 10.0, type: 'Object') where the :digitalMinimum key retrieves the leaf node (value: -32768.0).
 
-5. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'A mathematical model for simulating the neural regulation'})-[:FILES]->(:File {name: 'manifest.json'})-[:DATA]->(:Data {children: 19.0, type: 'Object'})-[:license]->(:Data {value: 'Creative Commons Attribution'})"
-answer: "Retrieve the license information ('Creative Commons Attribution') for the dataset 'A mathematical model for simulating the neural regulation'. This path accesses license metadata from the manifest.json file."
+5. path: "(:Pennsieve)-[:DATASET]->(:Dataset {name: 'A mathematical model for simulating the neural regulation'})-[:FILES]->(:File {name: 'manifest.json'})-[:DATA]->(:Data {children: 19.0, type: 'Object'})-[:license]->(:Data {value: 'Creative Commons Attribution'})" 
+Description: Retrieves the license information ('Creative Commons Attribution') from the manifest.json file in dataset A mathematical model for simulating the neural regulation. Special note: the manifest.json file’s :Data node is an Object with 19 children, and its :license key directly retrieves the licensing value. Starting at :Pennsieve, the :DATASET relationship leads to a :Dataset node (name: 'A mathematical model for simulating the neural regulation'), then :FILES accesses the :File node (name: 'manifest.json'); a :DATA relationship retrieves an Object node (children: 19.0, type: 'Object') from which the :license key retrieves the leaf node (value: 'Creative Commons Attribution').
 }
 
-Provide only the description without any additional context or explanations. Max 3 lines.
+In your output provide only the textual description without any additional context or explanations. Max 4-5 lines.
 """
 
 

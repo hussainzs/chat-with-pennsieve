@@ -4,6 +4,7 @@ import pandas as pd
 import random
 import time
 import threading
+from paths_vectorDB.vectorDB_setup import collection_exists, get_collection_size
 from app.main import process_query
 #from app.trash import process_query  # for testing returns a sample response for a query with a delay of 2 seconds
 
@@ -88,13 +89,13 @@ if submit:
                 <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
             </div>
             """, unsafe_allow_html=True)
-            time.sleep(random.uniform(3, 6))
+            time.sleep(random.uniform(2, 4))
 
             # Step 2:
             elapsed = time.time() - start_time
             status.markdown(f"""
             <div style="padding:10px; background-color: #e8f4f8; border-radius: 5px; margin-bottom:10px;">
-                <strong style="font-size:16px;">Step 2:</strong> Looking up similar queries<br>
+                <strong style="font-size:16px;">Step 2:</strong> Looking up similar queries in the vector database<br>
                 <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
             </div>
             """, unsafe_allow_html=True)
@@ -118,7 +119,7 @@ if submit:
                 <span style="color:gray; font-size:14px;">Elapsed time: {elapsed:.1f} seconds</span>
             </div>
             """, unsafe_allow_html=True)
-            time.sleep(random.uniform(3, 6))
+            time.sleep(random.uniform(2, 5))
 
             # Step 5: Keep showing a status message until process_query finishes.
             while query_thread.is_alive():

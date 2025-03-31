@@ -28,7 +28,7 @@ def create_and_fill_milvus_collection(collection_name: str, all_paths: List[str]
     # step 3: Create the collection (if it doesn't exist)
     create_collection(collection_name, define_schema(), connection_alias)
     # step 4: Insert data into the collection
-    insert_data(collection_name, all_paths, all_descriptions)
+    insert_bulk_data(collection_name, all_paths, all_descriptions)
     print("Setup complete✔️✔️✔️ \n")
 
 
@@ -132,7 +132,7 @@ def define_schema() -> CollectionSchema:
     return CollectionSchema(fields=fields, description="VectorDB for Cypher paths and descriptions")
 
 
-def create_collection(collection_name: str, schema: CollectionSchema, connection_alias: str = "default") -> Collection:
+def create_collection(collection_name: str) -> Collection | None:
     """
     Creates a Milvus collection IF IT DOES NOT EXIST ALREADY.
 
@@ -154,14 +154,18 @@ def create_collection(collection_name: str, schema: CollectionSchema, connection
         Exception: If there is an error connecting to the Milvus instance or creating the collection.
     """
     if not utility.has_collection(collection_name):
-        collection = Collection(name=collection_name, schema=schema, using=connection_alias)
+        connection_alias = "default"
+        # step 1: Connect to the Milvus instance
+        connections.connect(alias=connection_alias, host='localhost', port='19530')
+        # step 3: Create the collection (if it doesn't exist)
+        collection = Collection(name=collection_name, schema=define_schema(), using=connection_alias)
         print(f"✔️✔️Collection {collection_name} created.")
         return collection
     else:
         print(f"Collection {collection_name} already exists.")
 
 
-def insert_data(collection_name: str, all_paths: List[str], all_descriptions: List[str]) -> bool:
+def insert_bulk_data(collection_name: str, all_paths: List[str], all_descriptions: List[str]) -> bool:
     """
     Inserts Cypher paths, descriptions, and their embeddings into an existing Milvus collection.
 
@@ -218,6 +222,30 @@ def insert_data(collection_name: str, all_paths: List[str], all_descriptions: Li
     return True
 
 
+def insert_single_data(collection_name: str, path: str, description: str) -> bool:
+    try:
+        existing_collection = Collection(collection_name)
+    except Exception as e:
+        print(f"Error accessing collection {collection_name}: {e}")
+        return False
+    vector_embedding = generate_embedding(description)
+    if not vector_embedding:
+        print(f"Skipping insertion for path due to embedding failure: \n{path}\n")
+        return False
+    record = {
+        "cypher_path": path,
+        "description": description,
+        "embedding": vector_embedding
+    }
+    try:
+        existing_collection.insert([record])
+        existing_collection.flush()
+        return True
+    except Exception as e:
+        print(f"Failed insertion for path: \n{path}\nThe Error was == {e}")
+        return False
+
+
 def remove_collection(collection_name: str) -> None:
     """
     Removes a specified Milvus collection if it exists.
@@ -244,6 +272,29 @@ def remove_collection(collection_name: str) -> None:
         print(f"Collection {collection_name} dropped.")
     else:
         print(f"Collection {collection_name} does not exist.")
+
+
+def get_collection_size(collection_name: str) -> int:
+    """
+    Retrieves the number of entities in a specified Milvus collection.
+
+    This function connects to a Milvus instance and returns the number of entities in the specified collection.
+
+    Args:
+        collection_name (str): The name of the collection to check.
+
+    Returns:
+        int: The number of entities in the collection.
+
+    Raises:
+        Exception: If there is an error connecting to the Milvus instance or accessing the collection.
+    """
+    connections.connect(alias="default", host='localhost', port='19530')
+    if utility.has_collection(collection_name):
+        collection = Collection(collection_name)
+        return collection.num_entities
+    else:
+        raise Exception(f"Collection {collection_name} does not exist.")
 
 
 def search_similar_vectors(collection_name: str, user_query: str, top_k: int = 3) -> List[str]:
@@ -318,7 +369,7 @@ def search_similar_vectors(collection_name: str, user_query: str, top_k: int = 3
         param=search_params,
         limit=top_k,
         expr=None,
-        output_fields=['cypher_path'],
+        output_fields=['cypher_path', 'description'],  # Specify the fields to return
     )
 
     # Step 5: Print distances of the returned hits and store the Cypher paths
@@ -326,9 +377,16 @@ def search_similar_vectors(collection_name: str, user_query: str, top_k: int = 3
     if results:
         for i, hit in enumerate(results[0]):
             path: str = hit.entity.get('cypher_path')
-            output.append(path)
-            print(f"Hit {i+1}:")
+            description: str = hit.entity.get('description')
+
+            # Combine them into a formatted string
+            formatted = f"cypher query: {path}\ndescription: {description}\n"
+            output.append(formatted)
+
+            # Optional debug print
+            print(f"Hit {i + 1}:")
             print(f"  Cypher Path: {path}")
+            print(f"  Description: {description}")
             print(f"  Distance: {hit.distance}")
 
     # Step 6: Release the collection to reduce memory consumption

@@ -50,7 +50,7 @@ def run_query(user_query: str, max_retries: int = 3):
     # Get Cypher prompt template
     chat_prompt = get_cypher_prompt_template()
     start_time = time.time()
-    few_shot_examples = get_similar_paths_from_milvus(graph=graph, user_query=user_query, top_k=3)
+    few_shot_examples = get_similar_paths_from_milvus(graph=graph, user_query=user_query, top_k=5)
     end_time = time.time()
     print(f"****Time taken to conduct vector similarity search in vector DB: {end_time - start_time:.2f} seconds")
 
@@ -90,6 +90,7 @@ def run_query(user_query: str, max_retries: int = 3):
                 )
 
             # Invoke the chain with the enhanced query.
+            print("\n****************\nEnhanced Query:\n", enhanced_query)
             response = chain.invoke(enhanced_query)
 
             # Extract intermediate steps and generated cypher query when present.
@@ -113,9 +114,6 @@ def run_query(user_query: str, max_retries: int = 3):
                 # add the generated cypher query and error message to the queries_and_errors list.
                 error_msg = f"Empty context returned. Generated cypher: {generated_cypher if generated_cypher else 'No query generated'}"
                 queries_and_errors.append((enhanced_query, error_msg))
-                print(
-                    f"Empty context encountered (attempt {retry_count + 1}/{max_retries}):\nGenerated Cypher: {generated_cypher}\nQuery: {enhanced_query}"
-                )
                 retry_count += 1
 
                 if retry_count > max_retries:
